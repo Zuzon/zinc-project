@@ -1,0 +1,38 @@
+{
+  "name": "@zinc-project/source",
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {},
+  "private": true,
+  "dependencies": {
+    "@fastify/autoload": "~6.0.3",
+    "@fastify/sensible": "~6.0.2",
+    "axios": "^1.6.0",
+    "fastify": "~5.2.1",
+    "fastify-plugin": "~5.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.8.0",
+    "@nx/esbuild": "22.7.3",
+    "@nx/eslint": "22.7.3",
+    "@nx/eslint-plugin": "22.7.3",
+    "@nx/js": "22.7.3",
+    "@nx/node": "22.7.3",
+    "@nx/workspace": "22.7.3",
+    "@swc-node/register": "~1.11.1",
+    "@swc/core": "~1.15.5",
+    "@swc/helpers": "~0.5.18",
+    "@types/node": "20.19.9",
+    "esbuild": "^0.27.0",
+    "eslint": "^9.8.0",
+    "eslint-config-prettier": "^10.0.0",
+    "nx": "22.7.3",
+    "prettier": "~3.6.2",
+    "tslib": "^2.3.0",
+    "typescript": "~5.9.2",
+    "typescript-eslint": "^8.40.0"
+  },
+  "workspaces": [
+    "apps/*"
+  ]
+}

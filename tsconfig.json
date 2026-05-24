@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/zinc-server-e2e"
+    },
+    {
+      "path": "./apps/zinc-server"
+    }
+  ]
+}
