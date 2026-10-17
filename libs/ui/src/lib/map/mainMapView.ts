@@ -56,6 +56,11 @@ export class MainMapView extends LitElement {
     }
   }
 
+  /** Zooms the map by `delta` levels. */
+  zoomBy(delta: number): void {
+    this.engine.zoomBy(delta);
+  }
+
   private attach(target: HTMLDivElement): void {
     this.engine.mount(target);
     this.viewSync ??= syncMapView(this.engine, getCtx().mapView);

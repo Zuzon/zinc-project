@@ -16,8 +16,9 @@
     }
   },
   "dependencies": {
-    "lit": "^3.3.3",
+    "@material/web": "^2.5.0",
     "@zinc-project/ui-state": "*",
+    "lit": "^3.3.3",
     "rxjs": "~7.8.2"
   },
   "nx": {

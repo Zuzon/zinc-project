@@ -59,6 +59,17 @@ describe('MapEngine', () => {
     engine.destroy();
   });
 
+  it('zooms by whole levels', () => {
+    const engine = new MapEngine({ zoom: 10 });
+
+    engine.zoomBy(1);
+    expect(engine.getZoom()).toBe(11);
+    engine.zoomBy(-2);
+    expect(engine.getZoom()).toBe(9);
+
+    engine.destroy();
+  });
+
   it('replaces the view when the projection changes', () => {
     const engine = new MapEngine();
 

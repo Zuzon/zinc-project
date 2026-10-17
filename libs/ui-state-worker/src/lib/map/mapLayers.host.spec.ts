@@ -1,6 +1,12 @@
-import { BehaviorSubject, firstValueFrom, take, toArray } from 'rxjs';
+import {
+  BehaviorSubject,
+  firstValueFrom,
+  lastValueFrom,
+  take,
+  toArray,
+} from 'rxjs';
 import type { MapInfo } from '@zinc-project/dto';
-import { selectActiveMap } from './activeMapView.js';
+import { nextMap, selectActiveMap } from './activeMapView.js';
 import { MapLayersService } from './mapLayers.host.js';
 
 const mapInfo = (id: string): MapInfo => ({
@@ -19,6 +25,22 @@ describe('selectActiveMap', () => {
   it('picks the first map, or null when there is none', () => {
     expect(selectActiveMap([mapInfo('a'), mapInfo('b')])?.id).toBe('a');
     expect(selectActiveMap([])).toBeNull();
+  });
+
+  it('prefers the selected map while it is listed', () => {
+    const maps = [mapInfo('a'), mapInfo('b')];
+    expect(selectActiveMap(maps, 'b')?.id).toBe('b');
+    expect(selectActiveMap(maps, 'gone')?.id).toBe('a');
+  });
+});
+
+describe('nextMap', () => {
+  it('advances and wraps around', () => {
+    const maps = [mapInfo('a'), mapInfo('b'), mapInfo('c')];
+    expect(nextMap(maps, 'a')?.id).toBe('b');
+    expect(nextMap(maps, 'c')?.id).toBe('a');
+    expect(nextMap(maps, null)?.id).toBe('a');
+    expect(nextMap([], 'a')).toBeNull();
   });
 });
 
@@ -45,5 +67,29 @@ describe('MapLayersService', () => {
     sub.unsubscribe();
 
     expect(emitted).toEqual(['osm']);
+  });
+
+  it('can cycle only when more than one map is listed', async () => {
+    const maps$ = new BehaviorSubject<MapInfo[]>([mapInfo('osm')]);
+    const service = new MapLayersService({ maps$ });
+    const seen = firstValueFrom(service.canCycleMap$.pipe(take(2), toArray()));
+
+    maps$.next([mapInfo('osm'), mapInfo('topo')]);
+
+    expect(await seen).toEqual([false, true]);
+  });
+
+  it('cycles through the listed maps', async () => {
+    const maps$ = new BehaviorSubject<MapInfo[]>([
+      mapInfo('osm'),
+      mapInfo('topo'),
+    ]);
+    const service = new MapLayersService({ maps$ });
+    const seen = firstValueFrom(service.activeMap$.pipe(take(3), toArray()));
+
+    await lastValueFrom(service.cycleMap(), { defaultValue: undefined });
+    await lastValueFrom(service.cycleMap(), { defaultValue: undefined });
+
+    expect((await seen).map((m) => m?.id)).toEqual(['osm', 'topo', 'osm']);
   });
 });

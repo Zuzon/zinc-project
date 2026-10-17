@@ -12,8 +12,21 @@ vi.stubGlobal(
   },
 );
 
+// jsdom's ElementInternals lacks form association, which Material Web buttons use.
+for (const method of ['setFormValue', 'setValidity'] as const) {
+  ElementInternals.prototype[method] ??= () => undefined;
+}
+Object.defineProperty(ElementInternals.prototype, 'form', {
+  configurable: true,
+  get: () => null,
+});
+
 // jsdom has no Worker; the UI-state services never answer in component tests.
 setCtx({
   mapView: { view$: NEVER, setView: () => of(undefined) },
-  mapLayers: { activeMap$: NEVER },
+  mapLayers: {
+    activeMap$: NEVER,
+    canCycleMap$: NEVER,
+    cycleMap: () => of(undefined),
+  },
 } as unknown as Ctx);

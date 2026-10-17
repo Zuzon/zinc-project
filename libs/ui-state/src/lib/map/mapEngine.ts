@@ -23,6 +23,7 @@ export const mapEngineCss: string = olCss;
 const DEFAULT_PROJECTION = 'EPSG:3857';
 const DEFAULT_CENTER: LonLat = [24.1052, 56.9496];
 const DEFAULT_ZOOM = 10;
+const ZOOM_DURATION_MS = 250;
 
 /**
  * Owns the OpenLayers map. Coordinates cross this boundary as WGS84 degrees;
@@ -101,6 +102,25 @@ export class MapEngine {
     const view = this.map.getView();
     view.setCenter(fromLonLat(state.center, view.getProjection()));
     view.setZoom(state.zoom);
+  }
+
+  /** Animates the zoom by `delta` levels, staying within the view's limits. */
+  zoomBy(delta: number): void {
+    const view = this.map.getView();
+    const zoom = view.getZoom();
+    if (zoom === undefined) {
+      return;
+    }
+    const target = view.getConstrainedZoom(zoom + delta) ?? zoom + delta;
+    // Animations only advance while the map renders into a target.
+    if (!this.map.getTargetElement()) {
+      view.setZoom(target);
+      return;
+    }
+    if (view.getAnimating()) {
+      view.cancelAnimations();
+    }
+    view.animate({ zoom: target, duration: ZOOM_DURATION_MS });
   }
 
   /** Shows `info` as the base layer, replacing the previous one; `null` clears it. */

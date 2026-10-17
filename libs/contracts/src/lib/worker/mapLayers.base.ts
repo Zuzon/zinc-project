@@ -8,4 +8,8 @@ export const MAP_LAYERS_SERVICE = 'map-layers';
 export abstract class MapLayersServiceBase extends RxjsBridge {
   /** Base map to show, or `null` while none is available. */
   abstract activeMap$: Observable<MapInfo | null>;
+  /** Whether there is another map to switch to. */
+  abstract canCycleMap$: Observable<boolean>;
+  /** Switches the base map to the next available one, wrapping around. */
+  abstract cycleMap(): Observable<void>;
 }
