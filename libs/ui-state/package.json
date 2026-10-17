@@ -24,6 +24,11 @@
   },
   "dependencies": {
     "ol": "^10.11.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "@zinc-project/ui-state-worker": "*",
+    "@zinc-project/contracts": "*",
+    "@zinc-project/dto": "*",
+    "rxjs": "~7.8.2",
+    "rxjs-bridge": "^0.7.0"
   }
 }

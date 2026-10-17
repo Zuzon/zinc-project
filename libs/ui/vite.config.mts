@@ -20,11 +20,23 @@ export default defineConfig(() => ({
   // Resolve workspace libs to their TS sources, not their dist builds.
   resolve: {
     conditions: ['@zinc-project/source', ...defaultClientConditions],
+    alias: {
+      worker_threads: path.join(
+        import.meta.dirname,
+        '../../tools/vite/worker-threads-stub.js',
+      ),
+    },
   },
-  // Uncomment this if you are using workers.
-  // worker: {
-  //  plugins: [],
-  // },
+  // The UI-state worker is bundled from ui-state-worker sources and needs
+  // the same legacy-decorator transform.
+  worker: {
+    format: 'es' as const,
+    plugins: () => [
+      swc.vite({
+        tsconfigFile: path.join(import.meta.dirname, 'tsconfig.lib.json'),
+      }),
+    ],
+  },
   // Configuration for building your library.
   // See: https://vite.dev/guide/build.html#library-mode
   build: {

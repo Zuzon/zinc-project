@@ -1,8 +1,21 @@
+import { defaultServerConditions } from 'vite';
 import { defineConfig } from 'vitest/config';
+import swc from 'unplugin-swc';
+import * as path from 'path';
 
 export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/libs/ui-state-worker',
+  plugins: [
+    // Legacy decorators + useDefineForClassFields: false come from the tsconfig.
+    swc.vite({
+      tsconfigFile: path.join(__dirname, 'tsconfig.lib.json'),
+    }),
+  ],
+  // Resolve workspace libs to their TS sources, not their dist builds.
+  resolve: {
+    conditions: ['@zinc-project/source', ...defaultServerConditions],
+  },
   test: {
     name: '@zinc-project/ui-state-worker',
     watch: false,

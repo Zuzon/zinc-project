@@ -10,7 +10,14 @@
     "lib": ["es2022", "webworker"]
   },
   "include": ["src/**/*.ts"],
-  "references": [],
+  "references": [
+    {
+      "path": "../contracts/tsconfig.lib.json"
+    },
+    {
+      "path": "../dto/tsconfig.lib.json"
+    }
+  ],
   "exclude": [
     "vite.config.ts",
     "vite.config.mts",

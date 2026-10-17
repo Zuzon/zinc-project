@@ -15,6 +15,22 @@ export default defineConfig(() => ({
   // Resolve workspace libs to their TS sources so edits hot-reload.
   resolve: {
     conditions: ['@zinc-project/source', ...defaultClientConditions],
+    alias: {
+      worker_threads: path.join(
+        import.meta.dirname,
+        '../../tools/vite/worker-threads-stub.js',
+      ),
+    },
+  },
+  // The UI-state worker is bundled from ui-state-worker sources and needs
+  // the same legacy-decorator transform.
+  worker: {
+    format: 'es' as const,
+    plugins: () => [
+      swc.vite({
+        tsconfigFile: path.join(import.meta.dirname, 'tsconfig.app.json'),
+      }),
+    ],
   },
   server: {
     port: 4200,
