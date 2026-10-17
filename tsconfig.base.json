@@ -16,6 +16,8 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "es2022",
-    "customConditions": ["@zinc-project/source"]
+    "customConditions": ["@zinc-project/source"],
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false
   }
 }

@@ -1,16 +1,73 @@
-import { waitForPortOpen } from '@nx/node/utils';
+import { spawn } from 'node:child_process';
+import { connect, createServer, type AddressInfo } from 'node:net';
+import { join } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
+import { workspaceRoot } from '@nx/devkit';
+import type { TestProject } from 'vitest/node';
 
-/* eslint-disable */
-var __TEARDOWN_MESSAGE__: string;
+declare module 'vitest' {
+  export interface ProvidedContext {
+    baseUrl: string;
+  }
+}
 
-module.exports = async function () {
-  // Start services that that the app needs to run (e.g. database, docker-compose, etc.).
-  console.log('\nSetting up...\n');
+// Ask the OS for a free port so e2e never collides with a running dev server.
+function freePort(host: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = createServer();
+    srv.once('error', reject);
+    srv.listen(0, host, () => {
+      const { port } = srv.address() as AddressInfo;
+      srv.close(() => resolve(port));
+    });
+  });
+}
 
+async function waitForPortOpen(port: number, host: string, timeoutMs = 30000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const open = await new Promise<boolean>((resolve) => {
+      const socket = connect(port, host);
+      socket.once('connect', () => (socket.end(), resolve(true)));
+      socket.once('error', () => (socket.destroy(), resolve(false)));
+    });
+    if (open) return;
+    await sleep(100);
+  }
+  throw new Error(`zinc-server did not open ${host}:${port} in ${timeoutMs}ms`);
+}
+
+export default async function setup(project: TestProject) {
   const host = process.env.HOST ?? 'localhost';
-  const port = process.env.PORT ? Number(process.env.PORT) : 3000;
-  await waitForPortOpen(port, { host });
+  const port = process.env.PORT
+    ? Number(process.env.PORT)
+    : await freePort(host);
 
-  // Hint: Use `globalThis` to pass variables to global teardown.
-  globalThis.__TEARDOWN_MESSAGE__ = '\nTearing down...\n';
-};
+  // Run the built server directly (e2e depends on zinc-server:build), so this
+  // process owns it and teardown can stop it. No watch mode, no restarts.
+  const main = join(workspaceRoot, 'apps/zinc-server/dist/src/main.js');
+  const server = spawn(process.execPath, [main], {
+    env: { ...process.env, HOST: host, PORT: String(port) },
+    stdio: 'inherit',
+  });
+  const exited = new Promise<void>((resolve) =>
+    server.once('exit', () => resolve()),
+  );
+
+  await Promise.race([
+    waitForPortOpen(port, host),
+    exited.then(() => {
+      throw new Error(`zinc-server exited early (code ${server.exitCode})`);
+    }),
+  ]);
+
+  project.provide('baseUrl', `http://${host}:${port}`);
+
+  return async () => {
+    if (server.exitCode !== null || server.signalCode !== null) return;
+    server.kill('SIGTERM');
+    const timer = setTimeout(() => server.kill('SIGKILL'), 5000);
+    await exited;
+    clearTimeout(timer);
+  };
+}

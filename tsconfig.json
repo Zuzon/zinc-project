@@ -8,6 +8,33 @@
     },
     {
       "path": "./apps/zinc-server"
+    },
+    {
+      "path": "./libs/ui"
+    },
+    {
+      "path": "./libs/dto"
+    },
+    {
+      "path": "./libs/logger"
+    },
+    {
+      "path": "./libs/contracts"
+    },
+    {
+      "path": "./libs/data"
+    },
+    {
+      "path": "./libs/backend"
+    },
+    {
+      "path": "./libs/ui-state-worker"
+    },
+    {
+      "path": "./libs/ui-state"
+    },
+    {
+      "path": "./libs/utils"
     }
   ]
 }

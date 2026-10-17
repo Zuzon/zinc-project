@@ -5,40 +5,23 @@
   "nx": {
     "targets": {
       "build": {
-        "executor": "@nx/esbuild:esbuild",
+        "executor": "@nx/js:swc",
         "outputs": [
           "{options.outputPath}"
         ],
         "defaultConfiguration": "production",
         "options": {
-          "platform": "node",
           "outputPath": "apps/zinc-server/dist",
-          "format": [
-            "cjs"
-          ],
-          "bundle": false,
           "main": "apps/zinc-server/src/main.ts",
           "tsConfig": "apps/zinc-server/tsconfig.app.json",
           "assets": [
             "apps/zinc-server/src/assets"
           ],
-          "esbuildOptions": {
-            "sourcemap": true,
-            "outExtension": {
-              ".js": ".js"
-            }
-          }
+          "swcrc": "apps/zinc-server/.swcrc"
         },
         "configurations": {
           "development": {},
-          "production": {
-            "esbuildOptions": {
-              "sourcemap": false,
-              "outExtension": {
-                ".js": ".js"
-              }
-            }
-          }
+          "production": {}
         }
       },
       "prune-lockfile": {
@@ -95,7 +78,11 @@
           }
         }
       }
-    }
+    },
+    "tags": [
+      "type:server",
+      "scope:node"
+    ]
   },
   "dependencies": {
     "fastify": "~5.2.1",

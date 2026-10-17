@@ -2,25 +2,28 @@
   "name": "@zinc-project/zinc-server-e2e",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "nx": {
     "implicitDependencies": [
       "@zinc-project/zinc-server"
     ],
     "targets": {
       "e2e": {
-        "executor": "@nx/jest:jest",
+        "executor": "@nx/vitest:test",
         "outputs": [
-          "{projectRoot}/test-output/jest/coverage"
+          "{projectRoot}/test-output/vitest"
         ],
         "options": {
-          "jestConfig": "apps/zinc-server-e2e/jest.config.cts",
-          "passWithNoTests": true
+          "configFile": "apps/zinc-server-e2e/vitest.e2e.config.mts"
         },
         "dependsOn": [
-          "@zinc-project/zinc-server:build",
-          "@zinc-project/zinc-server:serve"
+          "@zinc-project/zinc-server:build"
         ]
       }
-    }
+    },
+    "tags": [
+      "type:e2e",
+      "scope:node"
+    ]
   }
 }
