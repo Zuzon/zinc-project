@@ -35,6 +35,7 @@ export class MapEngine {
 
   constructor(options: MapEngineOptions = {}) {
     this.map = new OlMap({
+      controls: [],
       layers: [new TileLayer({ source: new OSM() })],
       view: createView({
         projection: options.projection ?? DEFAULT_PROJECTION,
