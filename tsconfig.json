@@ -10,6 +10,9 @@
       "path": "./apps/zinc-server"
     },
     {
+      "path": "./apps/browser-shell"
+    },
+    {
       "path": "./libs/ui"
     },
     {

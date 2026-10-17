@@ -6,7 +6,7 @@
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node"],
+    "types": ["node", "vite/client"],
     "lib": ["es2022", "dom", "dom.iterable"]
   },
   "include": ["src/**/*.ts"],
@@ -23,6 +23,7 @@
     "src/**/*.test.js",
     "src/**/*.spec.js",
     "src/**/*.test.jsx",
-    "src/**/*.spec.jsx"
+    "src/**/*.spec.jsx",
+    "src/test-setup.ts"
   ]
 }

@@ -2,7 +2,10 @@
   "name": "@zinc-project/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "shell": "nx serve @zinc-project/browser-shell",
+    "server": "nx serve @zinc-project/zinc-server"
+  },
   "private": true,
   "dependencies": {
     "@fastify/autoload": "~6.0.3",

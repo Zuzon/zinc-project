@@ -1,0 +1,15 @@
+{
+  "name": "@zinc-project/browser-shell",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@zinc-project/ui": "*"
+  },
+  "nx": {
+    "tags": [
+      "type:shell",
+      "scope:browser"
+    ]
+  }
+}

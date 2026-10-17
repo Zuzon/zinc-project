@@ -15,7 +15,10 @@ The architecture is stream-first. Services are rxjs throughout, and every bounda
 **Existing projects:**
 - `@zinc-project/zinc-server`: Fastify 5 with a "Hello API" route, built with swc.
 - `@zinc-project/zinc-server-e2e`: Vitest. Global setup starts the built server on a free port and stops it afterwards.
-- Every lib in the table below: placeholder sources with Vitest, built with tsc. The exception is `libs/ui`, a Lit placeholder built with Vite.
+- `@zinc-project/browser-shell`: development-only Vite app (`nx serve @zinc-project/browser-shell`, port 4200) that mounts `<zinc-app>` for live reload and browser debugging. VS Code has a "Debug browser-shell in Chrome" launch config for it.
+- `libs/ui-state`: `MapEngine` (`src/lib/map/`), a basic OpenLayers map with an OSM layer. It takes and returns WGS84 `[lon, lat]` and exports the OL stylesheet as `mapEngineCss`.
+- `libs/ui`: Lit, built with Vite. `<zinc-app>` is the root component and renders `<main-map-view>`, which mounts `MapEngine` in its shadow root.
+- Every other lib in the table below: placeholder sources with Vitest, built with tsc.
 
 **Already set up:**
 - `rxjs` and `rxjs-bridge` are installed.
@@ -24,7 +27,7 @@ The architecture is stream-first. Services are rxjs throughout, and every bounda
 
 **Not created yet:** the shell apps (`zinc-web`, `zinc-electron`, `zinc-android`).
 
-**Not installed yet:** Electron, Capacitor, nodejs-mobile, OpenLayers, proj4, and any SQLite driver.
+**Not installed yet:** Electron, Capacitor, nodejs-mobile, proj4, and any SQLite driver. OpenLayers (`ol`) is installed in `libs/ui-state`.
 
 Don't assume an app exists; check with `npx nx show projects`. When you create a project, follow the layout below and add its tags in the `nx.tags` field of its `package.json`.
 
@@ -124,7 +127,7 @@ Electron main and the Android embedded-Node project host the backend in the same
 - **Socket method streams complete on disconnect.** Declare long-lived parameterized reads as `@SocketMethod(repeat())`. Observable properties resubscribe on reconnect automatically. Check this behaviour for each new transport too.
 - **Payloads must survive structured clone or JSON**, so send no class instances, functions or `Map`. Errors arrive as plain objects (`message`, `stack`), not `Error` instances.
 - **Service names** are string constants exported next to the contract. Keep a single instance of each bridge stub.
-- **TS config:** `tsconfig.base.json` sets `experimentalDecorators: true` and `useDefineForClassFields: false`, which bridge stubs need. Without the second setting, a `x$!: Observable` field would shadow the decorator's accessor. Runtime transforms must use legacy decorators as well: swc `decorators` + `legacyDecorator` (see `libs/ui/.swcrc`), and `unplugin-swc` in Vitest for libs that contain decorated classes.
+- **TS config:** `tsconfig.base.json` sets `experimentalDecorators: true` and `useDefineForClassFields: false`, which bridge stubs need. Without the second setting, a `x$!: Observable` field would shadow the decorator's accessor. Runtime transforms must use legacy decorators as well: swc `decorators` + `legacyDecorator` (see `libs/ui/.swcrc`), and `unplugin-swc` in Vite/Vitest for projects that contain decorated classes. Point `unplugin-swc`'s `tsconfigFile` at a real tsconfig (it reads `experimentalDecorators`/`useDefineForClassFields` from it). Vite configs that consume workspace libs set `resolve.conditions: ['@zinc-project/source', ...defaultClientConditions]` so they compile lib sources, not stale `dist` builds.
 - **Browser bundles:** `rxjs-bridge`'s ESM bundle imports `worker_threads`, so browser and worker bundles must alias or stub it in Vite.
 - **Diagnostics:** log `rxjsBridgeHealthMonitor.checkHealth()` periodically in the worker and the backend to catch leaked subscriptions.
 
@@ -166,7 +169,8 @@ The details, entity fields and legacy file paths are in [docs/legacy-shturmen-zi
 npx nx show projects                                   # what actually exists
 npx nx graph                                           # dependency graph
 npx nx run-many -t lint test build typecheck           # same as CI
-npx nx serve @zinc-project/zinc-server                 # Fastify dev server (PORT, HOST env)
+npm run server                                         # = nx serve zinc-server: Fastify dev server, rebuilds + restarts on change (PORT, HOST env)
+npm run shell                                          # = nx serve browser-shell: UI dev server with HMR on http://localhost:4200
 npx nx test @zinc-project/ui                           # Vitest for one lib
 npx nx e2e @zinc-project/zinc-server-e2e               # Vitest e2e (builds server, spawns it on a free port)
 cd libs/<lib> && npx vitest run src/path/to/x.spec.ts  # single spec

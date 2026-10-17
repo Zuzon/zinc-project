@@ -18,6 +18,17 @@
         "${workspaceFolder}/apps/zinc-server/dist/**/*.(m|c|)js",
         "!**/node_modules/**"
       ]
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Debug browser-shell in Chrome",
+      "url": "http://localhost:4200",
+      "webRoot": "${workspaceFolder}/apps/browser-shell",
+      "pathMapping": {
+        "/@fs/": "/"
+      },
+      "preLaunchTask": "serve browser-shell"
     }
   ]
 }

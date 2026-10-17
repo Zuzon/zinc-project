@@ -1,5 +1,5 @@
 /// <reference types='vitest' />
-import { defineConfig } from 'vite';
+import { defaultClientConditions, defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 import swc from 'unplugin-swc';
 import * as path from 'path';
@@ -8,12 +8,19 @@ export default defineConfig(() => ({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/libs/ui',
   plugins: [
-    swc.vite({ tsconfigFile: path.join(import.meta.dirname, '.swcrc') }),
+    // Legacy decorators + useDefineForClassFields: false come from the tsconfig.
+    swc.vite({
+      tsconfigFile: path.join(import.meta.dirname, 'tsconfig.lib.json'),
+    }),
     dts({
       entryRoot: 'src',
       tsconfigPath: path.join(import.meta.dirname, 'tsconfig.lib.json'),
     }),
   ],
+  // Resolve workspace libs to their TS sources, not their dist builds.
+  resolve: {
+    conditions: ['@zinc-project/source', ...defaultClientConditions],
+  },
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [],
@@ -46,6 +53,7 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     environment: 'jsdom',
+    setupFiles: ['./src/test-setup.ts'],
     include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {

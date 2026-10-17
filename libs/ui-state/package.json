@@ -23,6 +23,7 @@
     "name": "@zinc-project/ui-state"
   },
   "dependencies": {
+    "ol": "^10.11.0",
     "tslib": "^2.3.0"
   }
 }
