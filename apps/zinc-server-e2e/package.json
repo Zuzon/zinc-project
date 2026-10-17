@@ -25,5 +25,9 @@
       "type:e2e",
       "scope:node"
     ]
+  },
+  "dependencies": {
+    "@zinc-project/contracts": "*",
+    "@zinc-project/dto": "*"
   }
 }

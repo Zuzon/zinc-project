@@ -8,5 +8,12 @@
     "types": ["node"]
   },
   "include": ["vitest.e2e.config.mts", "src/**/*.ts"],
-  "references": []
+  "references": [
+    {
+      "path": "../../libs/dto"
+    },
+    {
+      "path": "../../libs/contracts"
+    }
+  ]
 }

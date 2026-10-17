@@ -6,6 +6,7 @@ import {
   MapEngine,
   getCtx,
   mapEngineCss,
+  syncMapLayers,
   syncMapView,
 } from '@zinc-project/ui-state';
 
@@ -30,6 +31,7 @@ export class MainMapView extends LitElement {
 
   private readonly mapRef = createRef<HTMLDivElement>();
   private viewSync?: Subscription;
+  private layersSync?: Subscription;
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -42,6 +44,8 @@ export class MainMapView extends LitElement {
   override disconnectedCallback(): void {
     this.viewSync?.unsubscribe();
     this.viewSync = undefined;
+    this.layersSync?.unsubscribe();
+    this.layersSync = undefined;
     this.engine.unmount();
     super.disconnectedCallback();
   }
@@ -55,6 +59,7 @@ export class MainMapView extends LitElement {
   private attach(target: HTMLDivElement): void {
     this.engine.mount(target);
     this.viewSync ??= syncMapView(this.engine, getCtx().mapView);
+    this.layersSync ??= syncMapLayers(this.engine, getCtx().mapLayers);
   }
 
   override render() {

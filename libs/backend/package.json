@@ -22,6 +22,11 @@
     ]
   },
   "dependencies": {
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "@zinc-project/contracts": "*",
+    "@zinc-project/dto": "*",
+    "@zinc-project/utils": "*",
+    "rxjs": "~7.8.2",
+    "rxjs-bridge": "^0.7.0"
   }
 }

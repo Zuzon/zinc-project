@@ -1,5 +1,7 @@
 import { spawn } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { connect, createServer, type AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { workspaceRoot } from '@nx/devkit';
@@ -8,6 +10,8 @@ import type { TestProject } from 'vitest/node';
 declare module 'vitest' {
   export interface ProvidedContext {
     baseUrl: string;
+    /** The server's ZINC_DATA_DIR. */
+    dataDir: string;
   }
 }
 
@@ -46,8 +50,15 @@ export default async function setup(project: TestProject) {
   // Run the built server directly (e2e depends on zinc-server:build), so this
   // process owns it and teardown can stop it. No watch mode, no restarts.
   const main = join(workspaceRoot, 'apps/zinc-server/dist/src/main.js');
+  // A fresh data dir per run, so map databases never leak between runs.
+  const dataDir = mkdtempSync(join(tmpdir(), 'zinc-e2e-'));
   const server = spawn(process.execPath, [main], {
-    env: { ...process.env, HOST: host, PORT: String(port) },
+    env: {
+      ...process.env,
+      HOST: host,
+      PORT: String(port),
+      ZINC_DATA_DIR: dataDir,
+    },
     stdio: 'inherit',
   });
   const exited = new Promise<void>((resolve) =>
@@ -62,12 +73,15 @@ export default async function setup(project: TestProject) {
   ]);
 
   project.provide('baseUrl', `http://${host}:${port}`);
+  project.provide('dataDir', dataDir);
 
   return async () => {
-    if (server.exitCode !== null || server.signalCode !== null) return;
-    server.kill('SIGTERM');
-    const timer = setTimeout(() => server.kill('SIGKILL'), 5000);
-    await exited;
-    clearTimeout(timer);
+    if (server.exitCode === null && server.signalCode === null) {
+      server.kill('SIGTERM');
+      const timer = setTimeout(() => server.kill('SIGKILL'), 5000);
+      await exited;
+      clearTimeout(timer);
+    }
+    rmSync(dataDir, { recursive: true, force: true });
   };
 }

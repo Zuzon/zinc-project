@@ -13,12 +13,20 @@ The architecture is stream-first. Services are rxjs throughout, and every bounda
 ## Current state (scaffold only)
 
 **Existing projects:**
-- `@zinc-project/zinc-server`: Fastify 5 with a "Hello API" route, built with swc.
-- `@zinc-project/zinc-server-e2e`: Vitest. Global setup starts the built server on a free port and stops it afterwards.
-- `@zinc-project/browser-shell`: development-only Vite app (`nx serve @zinc-project/browser-shell`, port 4200) that mounts `<zinc-app>` for live reload and browser debugging. VS Code has a "Debug browser-shell in Chrome" launch config for it.
-- `libs/ui-state`: `MapEngine` (`src/lib/map/`), a basic OpenLayers map with an OSM layer. It takes and returns WGS84 `[lon, lat]` and exports the OL stylesheet as `mapEngineCss`.
+- `@zinc-project/zinc-server`: Fastify 5, built with swc. `src/app/plugins/backend.ts` is the backend composition root: it starts the DB worker, builds the backend services and hosts them over `ws` at `/rx`. `GET /api/maps/:mapId/tiles/:z/:x/:y` serves tiles from `MapsService.getTile`. Data lives in `ZINC_DATA_DIR`, defaulting to `~/.local/share/zinc` or `%APPDATA%/zinc`.
+- `@zinc-project/zinc-server-e2e`: Vitest. Global setup starts the built server on a free port with a temp `ZINC_DATA_DIR` and stops it afterwards. The specs talk to the server over HTTP and the rxjs-bridge WebSocket.
+- `@zinc-project/browser-shell`: development-only Vite app (`nx serve @zinc-project/browser-shell`, port 4200) that mounts `<zinc-app>` for live reload and browser debugging. It proxies `/api` and `/rx` to the server on port 3000, so run `npm run server` alongside it. VS Code has a "Debug browser-shell in Chrome" launch config for it.
+- **Maps** (the first feature that runs end to end):
+  - `libs/utils`: `formats/znc.ts` parses and writes `.znc`, and `tiles/tileGrid.ts` holds the grid math and URL templates.
+  - `libs/contracts`: `db/mapStore.base.ts`, `backend/maps.base.ts` and `worker/mapLayers.base.ts`.
+  - `libs/data`: the DB worker (`src/worker.ts`, started via `createDataWorker`) keeps one better-sqlite3 `<id>.znm` file per map. Each file holds the map config and its tile BLOBs.
+  - `libs/backend`: `MapsService` holds one `MapHandler` per map and serves tiles cache-first. A shared `TileDownloader` caps requests at 64 in flight and retries failures. `hostMapsService()` exposes the service over any transport host.
+  - `libs/ui-state-worker`: a `remote/` WebSocket bridge to `maps`, and `MapLayersService.activeMap$` (currently the first map).
+  - `libs/ui-state`: `MapEngine.setBaseMap()` builds an OL tile source from a `MapInfo`, registering proj4 grids when needed.
+- **Tile coordinates are OpenLayers tile coords everywhere**: `y` grows down from the grid origin, so it is negative for bottom-left origins. Download templates use `{-y}` for TMS rows. Tile bytes go over HTTP, never through a JSON socket bridge.
+- `libs/ui-state`: `MapEngine` (`src/lib/map/`) wraps OpenLayers. It takes and returns WGS84 `[lon, lat]` and exports the OL stylesheet as `mapEngineCss`.
 - `libs/ui`: Lit, built with Vite. `<zinc-app>` is the root component and renders `<main-map-view>`, which mounts `MapEngine` in its shadow root.
-- Every other lib in the table below: placeholder sources with Vitest, built with tsc.
+- `libs/logger` and parts of `libs/utils`: placeholder sources with Vitest, built with tsc.
 
 **Already set up:**
 - `rxjs` and `rxjs-bridge` are installed.
@@ -27,7 +35,14 @@ The architecture is stream-first. Services are rxjs throughout, and every bounda
 
 **Not created yet:** the shell apps (`zinc-web`, `zinc-electron`, `zinc-android`).
 
-**Not installed yet:** Electron, Capacitor, nodejs-mobile, proj4, and any SQLite driver. OpenLayers (`ol`) is installed in `libs/ui-state`.
+**Not installed yet:** Electron, Capacitor and nodejs-mobile. OpenLayers (`ol`) and `proj4` are installed in `libs/ui-state`, `ws` in zinc-server, and `better-sqlite3` in `libs/data`.
+
+`better-sqlite3` is a native module. Before shipping each platform it needs:
+- `electron-rebuild` for Electron;
+- an arm64 build for nodejs-mobile;
+- the `.node` file shipped beside the Node SEA binary.
+
+**rxjs-bridge gaps found so far:** `WebSocketHandler` has no stop/close method, the socket transport is JSON-only (no binary), and the `@WorkerThreadHost` decorator throws when its module is imported outside a worker thread.
 
 Don't assume an app exists; check with `npx nx show projects`. When you create a project, follow the layout below and add its tags in the `nx.tags` field of its `package.json`.
 

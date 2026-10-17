@@ -35,6 +35,11 @@ export default defineConfig(() => ({
   server: {
     port: 4200,
     host: 'localhost',
+    // Backend from `npm run server`: tile endpoint and rxjs-bridge WebSocket.
+    proxy: {
+      '/api': 'http://localhost:3000',
+      '/rx': { target: 'ws://localhost:3000', ws: true },
+    },
   },
   preview: {
     port: 4300,

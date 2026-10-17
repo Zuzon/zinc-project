@@ -1,11 +1,16 @@
 import { config } from 'rxjs';
-import type { MapViewServiceBase } from '@zinc-project/contracts';
+import type {
+  MapLayersServiceBase,
+  MapViewServiceBase,
+} from '@zinc-project/contracts';
+import { createMapLayersBridge } from './mapLayers.bridge.js';
 import { createMapViewBridge } from './mapView.bridge.js';
 import { createUiStateWorker } from './uiStateWorker.js';
 
 /** Services the UI talks to; each one is a single bridge stub to the worker. */
 export interface Ctx {
   mapView: MapViewServiceBase;
+  mapLayers: MapLayersServiceBase;
 }
 
 let ctx: Ctx | undefined;
@@ -19,6 +24,7 @@ export function getCtx(): Ctx {
     const worker = createUiStateWorker();
     ctx = {
       mapView: createMapViewBridge(worker),
+      mapLayers: createMapLayersBridge(worker),
     };
   }
   return ctx;

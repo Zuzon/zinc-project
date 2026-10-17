@@ -16,6 +16,11 @@ export default defineConfig(() => ({
   resolve: {
     conditions: ['@zinc-project/source', ...defaultServerConditions],
   },
+  ssr: {
+    resolve: {
+      conditions: ['@zinc-project/source', ...defaultServerConditions],
+    },
+  },
   test: {
     name: '@zinc-project/ui-state-worker',
     watch: false,

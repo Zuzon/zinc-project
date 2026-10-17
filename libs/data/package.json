@@ -13,6 +13,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./worker": {
+      "@zinc-project/source": "./src/worker.ts",
+      "types": "./dist/worker.d.ts",
+      "import": "./dist/worker.js",
+      "default": "./dist/worker.js"
     }
   },
   "nx": {
@@ -22,6 +28,11 @@
     ]
   },
   "dependencies": {
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "@zinc-project/contracts": "*",
+    "@zinc-project/dto": "*",
+    "better-sqlite3": "^13.0.3",
+    "rxjs": "~7.8.2",
+    "rxjs-bridge": "^0.7.0"
   }
 }

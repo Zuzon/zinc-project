@@ -1,12 +1,13 @@
 import OlMap from 'ol/Map.js';
 import View from 'ol/View.js';
 import TileLayer from 'ol/layer/Tile.js';
-import OSM from 'ol/source/OSM.js';
+import type TileImage from 'ol/source/TileImage.js';
 import { fromLonLat, toLonLat } from 'ol/proj.js';
 import { unByKey } from 'ol/Observable.js';
 import olCss from 'ol/ol.css?inline';
 import { Observable } from 'rxjs';
-import type { LonLat, MapViewState } from '@zinc-project/dto';
+import type { LonLat, MapInfo, MapViewState } from '@zinc-project/dto';
+import { createMapSource, resolveMapProjection } from './mapSource.js';
 
 export type { LonLat } from '@zinc-project/dto';
 
@@ -29,6 +30,8 @@ const DEFAULT_ZOOM = 10;
  */
 export class MapEngine {
   private readonly map: OlMap;
+  private baseLayer?: TileLayer<TileImage>;
+  private baseMapId?: string;
 
   /** Emits the view after every pan, zoom or programmatic move. */
   readonly viewChange$: Observable<MapViewState>;
@@ -36,7 +39,7 @@ export class MapEngine {
   constructor(options: MapEngineOptions = {}) {
     this.map = new OlMap({
       controls: [],
-      layers: [new TileLayer({ source: new OSM() })],
+      layers: [],
       view: createView({
         projection: options.projection ?? DEFAULT_PROJECTION,
         center: options.center ?? DEFAULT_CENTER,
@@ -100,9 +103,44 @@ export class MapEngine {
     view.setZoom(state.zoom);
   }
 
+  /** Shows `info` as the base layer, replacing the previous one; `null` clears it. */
+  setBaseMap(info: MapInfo | null): void {
+    this.clearBaseMap();
+    if (!info) {
+      return;
+    }
+    const projection = resolveMapProjection(info);
+    if (!projection) {
+      console.warn(`[map] unknown projection ${info.epsg} of map ${info.id}`);
+      return;
+    }
+    this.baseLayer = new TileLayer({
+      source: createMapSource(info, projection),
+    });
+    this.baseMapId = info.id;
+    this.map.getLayers().insertAt(0, this.baseLayer);
+  }
+
+  /** Id of the map shown as the base layer. */
+  getBaseMapId(): string | undefined {
+    return this.baseMapId;
+  }
+
   destroy(): void {
+    this.clearBaseMap();
     this.unmount();
     this.map.dispose();
+  }
+
+  private clearBaseMap(): void {
+    if (!this.baseLayer) {
+      return;
+    }
+    this.map.removeLayer(this.baseLayer);
+    this.baseLayer.getSource()?.dispose();
+    this.baseLayer.dispose();
+    this.baseLayer = undefined;
+    this.baseMapId = undefined;
   }
 }
 

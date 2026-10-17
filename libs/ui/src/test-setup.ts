@@ -15,4 +15,5 @@ vi.stubGlobal(
 // jsdom has no Worker; the UI-state services never answer in component tests.
 setCtx({
   mapView: { view$: NEVER, setView: () => of(undefined) },
+  mapLayers: { activeMap$: NEVER },
 } as unknown as Ctx);
