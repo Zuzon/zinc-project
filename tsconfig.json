@@ -13,6 +13,9 @@
       "path": "./apps/browser-shell"
     },
     {
+      "path": "./apps/zinc-web"
+    },
+    {
       "path": "./libs/ui"
     },
     {
@@ -38,6 +41,15 @@
     },
     {
       "path": "./libs/utils"
+    },
+    {
+      "path": "./apps/zinc-electron"
+    },
+    {
+      "path": "./apps/zinc-android-node"
+    },
+    {
+      "path": "./apps/zinc-ui-e2e"
     }
   ]
 }

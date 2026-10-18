@@ -1,13 +1,13 @@
+import type { SocketHandler } from 'rxjs-bridge';
 import type { MapsServiceBase } from '@zinc-project/contracts';
 import { MapLayersService } from './map/mapLayers.host.js';
 import { MapViewService } from './map/mapView.host.js';
-import { createBackendSocket } from './remote/backendSocket.js';
 import { createMapsBridge } from './remote/maps.bridge.js';
 import { IndexedDbKeyValueStore } from './storage/indexedDbKeyValueStore.js';
 
 export interface WorkerContextOptions {
-  /** WebSocket URL of the backend's rxjs-bridge host. */
-  backendUrl: string;
+  /** Started transport to the backend's rxjs-bridge host. */
+  backend: SocketHandler;
 }
 
 /** Composition root of the UI-state worker: builds and wires every host service. */
@@ -20,8 +20,7 @@ export class WorkerContext {
     const settings = new IndexedDbKeyValueStore('zinc-ui');
     this.mapView = new MapViewService(settings);
 
-    const backend = createBackendSocket(options.backendUrl);
-    this.maps = createMapsBridge(backend);
+    this.maps = createMapsBridge(options.backend);
     this.mapLayers = new MapLayersService(this.maps);
   }
 }

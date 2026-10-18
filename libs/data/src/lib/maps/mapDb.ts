@@ -5,6 +5,15 @@ import { migrateMapDb } from './mapDbMigrations.js';
 
 export const MAP_DB_EXTENSION = '.znm';
 
+/** How the DB worker opens SQLite files. */
+export interface SqliteOptions {
+  /**
+   * The better-sqlite3 addon, for platforms without a bundled prebuild:
+   * a `.node` path, or a module loaded by {@link loadSqliteAddon}.
+   */
+  nativeBinding?: string | object;
+}
+
 interface TileRow {
   data: Buffer;
   content_type: string;
@@ -35,8 +44,9 @@ export class MapDb {
     name: string,
     config: ZncConfig,
     createdAt = Date.now(),
+    sqlite: SqliteOptions = {},
   ): MapDb {
-    const db = openDb(file, false);
+    const db = openDb(file, false, sqlite);
     try {
       db.transaction(() => {
         const insert = db.prepare(
@@ -54,8 +64,8 @@ export class MapDb {
   }
 
   /** Opens an existing map database, upgrading its schema when needed. */
-  static open(file: string): MapDb {
-    const db = openDb(file, true);
+  static open(file: string, sqlite: SqliteOptions = {}): MapDb {
+    const db = openDb(file, true, sqlite);
     try {
       return new MapDb(db);
     } catch (err) {
@@ -111,8 +121,27 @@ export class MapDb {
   }
 }
 
-function openDb(file: string, mustExist: boolean): Database.Database {
-  const db = new Database(file, { fileMustExist: mustExist });
+/**
+ * Loads the better-sqlite3 addon from any file name. Android ships it among
+ * the APK's native libraries as `lib….so`, which `nativeBinding` as a path
+ * cannot load: better-sqlite3 forces a `.node` extension on it.
+ */
+export function loadSqliteAddon(file: string): object {
+  const addon = { exports: {} };
+  process.dlopen(addon, file);
+  return addon.exports;
+}
+
+function openDb(
+  file: string,
+  mustExist: boolean,
+  { nativeBinding }: SqliteOptions,
+): Database.Database {
+  const db = new Database(file, {
+    fileMustExist: mustExist,
+    // better-sqlite3 13 also takes a loaded addon; its typings predate that.
+    nativeBinding: nativeBinding as string | undefined,
+  });
   try {
     db.pragma('journal_mode = WAL');
     db.pragma('synchronous = NORMAL');

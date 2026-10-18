@@ -3,6 +3,7 @@ import { workerData } from 'node:worker_threads';
 import { config, interval } from 'rxjs';
 import { rxjsBridgeHealthMonitor } from 'rxjs-bridge';
 import type { DataWorkerData } from './lib/dataWorker.js';
+import { loadSqliteAddon } from './lib/maps/mapDb.js';
 import { MapStore } from './lib/maps/mapStore.js';
 import { MapStoreHost } from './lib/maps/mapStore.host.js';
 
@@ -10,8 +11,12 @@ config.onUnhandledError = (err) => {
   console.error('[db-worker] unhandled rx error', err);
 };
 
-const { mapsDir } = workerData as DataWorkerData;
-new MapStoreHost(new MapStore(mapsDir));
+const { mapsDir, sqliteBinding } = workerData as DataWorkerData;
+new MapStoreHost(
+  new MapStore(mapsDir, {
+    nativeBinding: sqliteBinding ? loadSqliteAddon(sqliteBinding) : undefined,
+  }),
+);
 
 interval(60_000).subscribe(() => {
   console.debug(

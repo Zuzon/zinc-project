@@ -1,9 +1,10 @@
 import Database from 'better-sqlite3';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import type { ZncConfig } from '@zinc-project/dto';
-import { MapDb } from './mapDb.js';
+import { MapDb, loadSqliteAddon } from './mapDb.js';
 import { MAP_DB_MIGRATIONS } from './mapDbMigrations.js';
 
 const config: ZncConfig = {
@@ -14,6 +15,20 @@ const config: ZncConfig = {
   tileUrl: 'https://tiles.example/{z}/{x}/{y}.png',
   headers: { 'User-Agent': 'test' },
 };
+
+/** The prebuild better-sqlite3 loads by itself on this machine. */
+function defaultAddonPath(): string {
+  const require = createRequire(import.meta.url);
+  const packageDir = dirname(require.resolve('better-sqlite3/package.json'));
+  const binding = require(join(packageDir, 'lib/binding.js')) as {
+    getPrebuildPath(): string | null;
+  };
+  const path = binding.getPrebuildPath();
+  if (!path) {
+    throw new Error('no better-sqlite3 prebuild for this platform');
+  }
+  return path;
+}
 
 describe('MapDb', () => {
   let dir: string;
@@ -81,5 +96,26 @@ describe('MapDb', () => {
 
   it('refuses to open a file that does not exist', () => {
     expect(() => MapDb.open(join(dir, 'missing.znm'))).toThrow();
+  });
+
+  it('loads SQLite from the given native binding', () => {
+    expect(() =>
+      MapDb.create(join(dir, 'n.znm'), 'n', config, 0, {
+        nativeBinding: join(dir, 'missing-addon.node'),
+      }),
+    ).toThrow(/missing-addon/);
+  });
+
+  it('opens SQLite with an addon loaded from any file name', () => {
+    const addonFile = join(dir, 'libbetter_sqlite3.so');
+    copyFileSync(defaultAddonPath(), addonFile);
+
+    const db = track(
+      MapDb.create(join(dir, 's.znm'), 's', config, 0, {
+        nativeBinding: loadSqliteAddon(addonFile),
+      }),
+    );
+
+    expect(db.map.name).toBe('s');
   });
 });

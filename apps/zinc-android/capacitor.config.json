@@ -1,0 +1,10 @@
+{
+  "appId": "app.zinc.navigation",
+  "appName": "Zinc Navigation",
+  "webDir": "../zinc-web/dist",
+  "android": {
+    "path": "android",
+    "minWebViewVersion": 100,
+    "backgroundColor": "#1e1e1e"
+  }
+}

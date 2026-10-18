@@ -3,7 +3,7 @@ import { mkdirSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { BehaviorSubject, Observable, defer, of, throwError } from 'rxjs';
 import type { StoredMap, TileData, ZncConfig } from '@zinc-project/dto';
-import { MAP_DB_EXTENSION, MapDb } from './mapDb.js';
+import { MAP_DB_EXTENSION, MapDb, type SqliteOptions } from './mapDb.js';
 
 /**
  * All map tile databases in one directory, one `<id>.znm` file per map.
@@ -15,14 +15,17 @@ export class MapStore {
   private readonly dbs = new Map<string, MapDb>();
   private readonly _maps$ = new BehaviorSubject<StoredMap[]>([]);
 
-  constructor(private readonly mapsDir: string) {
+  constructor(
+    private readonly mapsDir: string,
+    private readonly sqlite: SqliteOptions = {},
+  ) {
     mkdirSync(mapsDir, { recursive: true });
     for (const entry of readdirSync(mapsDir)) {
       if (!entry.endsWith(MAP_DB_EXTENSION)) {
         continue;
       }
       try {
-        const db = MapDb.open(join(mapsDir, entry));
+        const db = MapDb.open(join(mapsDir, entry), sqlite);
         this.dbs.set(db.map.id, db);
       } catch (err) {
         console.warn(`[map-store] skipping unreadable map ${entry}`, err);
@@ -39,6 +42,8 @@ export class MapStore {
         join(this.mapsDir, `${id}${MAP_DB_EXTENSION}`),
         name,
         config,
+        Date.now(),
+        this.sqlite,
       );
       this.dbs.set(id, db);
       this.publish();

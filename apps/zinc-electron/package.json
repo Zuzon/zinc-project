@@ -1,0 +1,94 @@
+{
+  "name": "@zinc-project/zinc-electron",
+  "productName": "Zinc Navigation",
+  "version": "0.0.1",
+  "description": "Navigation for 4x4 rally-raid and trophy navigators",
+  "author": "Aigars Zeiza",
+  "private": true,
+  "nx": {
+    "tags": [
+      "type:server",
+      "scope:node"
+    ],
+    "implicitDependencies": [
+      "@zinc-project/zinc-web"
+    ],
+    "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          {
+            "projects": [
+              "@zinc-project/zinc-web"
+            ],
+            "target": "build"
+          }
+        ],
+        "inputs": [
+          "production",
+          "^production",
+          "{workspaceRoot}/apps/zinc-web/dist/**/*"
+        ],
+        "outputs": [
+          "{projectRoot}/dist/app"
+        ],
+        "options": {
+          "command": "node scripts/build.mjs",
+          "cwd": "{projectRoot}"
+        }
+      },
+      "start": {
+        "executor": "nx:run-commands",
+        "continuous": true,
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "command": "node scripts/start.mjs",
+          "cwd": "{projectRoot}"
+        }
+      },
+      "package": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build"
+        ],
+        "outputs": [
+          "{projectRoot}/dist/release"
+        ],
+        "options": {
+          "command": "electron-builder --config electron-builder.config.cjs --linux AppImage --win nsis --x64",
+          "cwd": "{projectRoot}"
+        }
+      },
+      "package-linux": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "command": "electron-builder --config electron-builder.config.cjs --linux AppImage --x64",
+          "cwd": "{projectRoot}"
+        }
+      },
+      "package-win": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "command": "electron-builder --config electron-builder.config.cjs --win nsis --x64",
+          "cwd": "{projectRoot}"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@zinc-project/backend": "*",
+    "@zinc-project/contracts": "*",
+    "@zinc-project/data": "*",
+    "better-sqlite3": "^13.0.3",
+    "rxjs": "~7.8.2",
+    "rxjs-bridge": "^0.8.0"
+  }
+}

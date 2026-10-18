@@ -14,6 +14,12 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./init": {
+      "@zinc-project/source": "./src/lib/workerInit.ts",
+      "types": "./dist/lib/workerInit.d.ts",
+      "import": "./dist/lib/workerInit.js",
+      "default": "./dist/lib/workerInit.js"
+    },
     "./worker": {
       "@zinc-project/source": "./src/worker.ts",
       "types": "./dist/worker.d.ts",
@@ -33,6 +39,6 @@
     "@zinc-project/contracts": "*",
     "@zinc-project/dto": "*",
     "rxjs": "~7.8.2",
-    "rxjs-bridge": "^0.7.0"
+    "rxjs-bridge": "^0.8.0"
   }
 }

@@ -1,0 +1,56 @@
+{
+  "name": "@zinc-project/zinc-ui-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "nx": {
+    "implicitDependencies": [
+      "@zinc-project/zinc-server",
+      "@zinc-project/zinc-web",
+      "@zinc-project/zinc-electron"
+    ],
+    "targets": {
+      "e2e-web": {
+        "executor": "@nx/vitest:test",
+        "outputs": [
+          "{projectRoot}/test-output/web"
+        ],
+        "options": {
+          "configFile": "apps/zinc-ui-e2e/vitest.web.e2e.config.mts"
+        },
+        "dependsOn": [
+          "@zinc-project/zinc-server:build",
+          "@zinc-project/zinc-web:build"
+        ]
+      },
+      "e2e-desktop": {
+        "executor": "@nx/vitest:test",
+        "outputs": [
+          "{projectRoot}/test-output/desktop"
+        ],
+        "options": {
+          "configFile": "apps/zinc-ui-e2e/vitest.desktop.e2e.config.mts"
+        },
+        "dependsOn": [
+          "@zinc-project/zinc-electron:build"
+        ]
+      },
+      "e2e": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "e2e-web",
+          "e2e-desktop"
+        ]
+      }
+    },
+    "tags": [
+      "type:e2e",
+      "scope:node"
+    ]
+  },
+  "dependencies": {
+    "@zinc-project/data": "*",
+    "@zinc-project/dto": "*",
+    "@zinc-project/utils": "*"
+  }
+}

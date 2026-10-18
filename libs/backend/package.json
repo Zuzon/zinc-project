@@ -27,6 +27,6 @@
     "@zinc-project/dto": "*",
     "@zinc-project/utils": "*",
     "rxjs": "~7.8.2",
-    "rxjs-bridge": "^0.7.0"
+    "rxjs-bridge": "^0.8.0"
   }
 }

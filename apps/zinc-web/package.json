@@ -1,0 +1,17 @@
+{
+  "name": "@zinc-project/zinc-web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@capacitor/core": "8.5.2",
+    "@zinc-project/ui": "*",
+    "@zinc-project/ui-state": "*"
+  },
+  "nx": {
+    "tags": [
+      "type:shell",
+      "scope:browser"
+    ]
+  }
+}

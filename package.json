@@ -4,7 +4,11 @@
   "license": "MIT",
   "scripts": {
     "shell": "nx serve @zinc-project/browser-shell",
-    "server": "nx serve @zinc-project/zinc-server"
+    "server": "nx serve @zinc-project/zinc-server",
+    "desktop": "nx run @zinc-project/zinc-electron:start",
+    "desktop:dist": "nx run @zinc-project/zinc-electron:package",
+    "android": "nx run @zinc-project/zinc-android:run",
+    "android:apk": "nx run @zinc-project/zinc-android:assemble"
   },
   "private": true,
   "dependencies": {
@@ -17,7 +21,7 @@
     "lit": "^3.3.3",
     "proj4": "^2.22.0",
     "rxjs": "~7.8.2",
-    "rxjs-bridge": "^0.7.0",
+    "rxjs-bridge": "^0.8.0",
     "ws": "^8.22.0"
   },
   "devDependencies": {
@@ -43,6 +47,8 @@
     "@vitest/ui": "~4.1.0",
     "ajv": "^8.0.0",
     "chokidar": "^4.0.3",
+    "electron": "~44.9.0",
+    "electron-builder": "^26.15.3",
     "esbuild": "^0.27.0",
     "eslint": "^9.8.0",
     "eslint-config-prettier": "^10.0.0",
@@ -50,6 +56,7 @@
     "jsdom": "^27.4.0",
     "jsonc-eslint-parser": "^2.1.0",
     "nx": "22.7.3",
+    "playwright": "1.63.0",
     "prettier": "~3.6.2",
     "ts-node": "^10.9.2",
     "tslib": "^2.3.0",

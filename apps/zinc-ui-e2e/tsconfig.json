@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "out-tsc/@zinc-project/zinc-ui-e2e",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": ["node"]
+  },
+  "include": ["vitest.*.mts", "src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../libs/utils"
+    },
+    {
+      "path": "../../libs/dto"
+    },
+    {
+      "path": "../../libs/data"
+    }
+  ]
+}

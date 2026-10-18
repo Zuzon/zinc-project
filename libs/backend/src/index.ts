@@ -5,3 +5,5 @@ export * from './lib/maps/maps.host.js';
 export * from './lib/maps/maps.service.js';
 export * from './lib/maps/mapStore.bridge.js';
 export * from './lib/maps/tileDownloader.js';
+export * from './lib/maps/tileResponse.js';
+export * from './lib/platform/appDataDir.js';

@@ -13,12 +13,13 @@ import {
   MapsService,
   OSM_MAP,
   TileDownloader,
+  appDataDir,
   createMapStoreBridge,
   hostMapsService,
+  tileUrlTemplate,
 } from '@zinc-project/backend';
 import { MAPS_SERVICE } from '@zinc-project/contracts';
 import { createDataWorker } from '@zinc-project/data';
-import { appDataDir } from '../appDataDir';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -49,7 +50,7 @@ export default fp(
 
     const downloader = new TileDownloader();
     const maps = new MapsService(store, downloader, {
-      tileUrl: (id) => `/api/maps/${encodeURIComponent(id)}/tiles/{z}/{x}/{y}`,
+      tileUrl: tileUrlTemplate,
       defaultMaps: [OSM_MAP],
     });
 

@@ -33,6 +33,6 @@
     "@zinc-project/dto": "*",
     "better-sqlite3": "^13.0.3",
     "rxjs": "~7.8.2",
-    "rxjs-bridge": "^0.7.0"
+    "rxjs-bridge": "^0.8.0"
   }
 }

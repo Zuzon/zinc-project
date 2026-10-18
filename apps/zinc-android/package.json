@@ -1,0 +1,95 @@
+{
+  "name": "@zinc-project/zinc-android",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "tags": [
+      "type:shell",
+      "scope:browser"
+    ],
+    "implicitDependencies": [
+      "@zinc-project/zinc-web",
+      "@zinc-project/zinc-android-node"
+    ],
+    "targets": {
+      "native": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node scripts/fetch-native.mjs",
+          "cwd": "{projectRoot}"
+        }
+      },
+      "sync": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "native",
+          {
+            "projects": [
+              "@zinc-project/zinc-web",
+              "@zinc-project/zinc-android-node"
+            ],
+            "target": "build"
+          }
+        ],
+        "options": {
+          "command": "cap sync android",
+          "cwd": "{projectRoot}"
+        }
+      },
+      "open": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "sync"
+        ],
+        "options": {
+          "command": "node scripts/cap.mjs open android",
+          "cwd": "{projectRoot}"
+        }
+      },
+      "run": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "sync"
+        ],
+        "options": {
+          "command": "node scripts/cap.mjs run android",
+          "cwd": "{projectRoot}"
+        }
+      },
+      "assemble": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "sync"
+        ],
+        "outputs": [
+          "{projectRoot}/android/app/build/outputs/apk"
+        ],
+        "options": {
+          "command": "./gradlew assembleDebug",
+          "cwd": "{projectRoot}/android"
+        }
+      },
+      "bundle": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "sync"
+        ],
+        "outputs": [
+          "{projectRoot}/android/app/build/outputs/bundle"
+        ],
+        "options": {
+          "command": "./gradlew bundleRelease",
+          "cwd": "{projectRoot}/android"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/core": "8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.2"
+  }
+}

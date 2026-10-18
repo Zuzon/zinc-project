@@ -6,3 +6,4 @@ export * from './lib/remote/backendSocket.js';
 export * from './lib/storage/keyValueStore.js';
 export * from './lib/storage/indexedDbKeyValueStore.js';
 export * from './lib/workerContext.js';
+export * from './lib/workerInit.js';

@@ -13,15 +13,42 @@ The architecture is stream-first. Services are rxjs throughout, and every bounda
 ## Current state (scaffold only)
 
 **Existing projects:**
-- `@zinc-project/zinc-server`: Fastify 5, built with swc. `src/app/plugins/backend.ts` is the backend composition root: it starts the DB worker, builds the backend services and hosts them over `ws` at `/rx`. `GET /api/maps/:mapId/tiles/:z/:x/:y` serves tiles from `MapsService.getTile`. Data lives in `ZINC_DATA_DIR`, defaulting to `~/.local/share/zinc` or `%APPDATA%/zinc`.
+- `@zinc-project/zinc-server`: Fastify 5, built with swc. `src/app/plugins/backend.ts` is the backend composition root: it starts the DB worker, builds the backend services and hosts them over `ws` at `/rx`. `GET /api/maps/:mapId/tiles/:z/:x/:y` serves tiles through `tileResponse()` from libs/backend. Data lives in `appDataDir()` (libs/backend): `ZINC_DATA_DIR`, defaulting to `~/.local/share/zinc` or `%APPDATA%/zinc`. With `ZINC_WEB_DIR` pointing at a zinc-web build, `plugins/web.ts` serves it at `/` through `@fastify/static`; this is the headless deployment. Without it, `/` keeps the placeholder JSON.
 - `@zinc-project/zinc-server-e2e`: Vitest. Global setup starts the built server on a free port with a temp `ZINC_DATA_DIR` and stops it afterwards. The specs talk to the server over HTTP and the rxjs-bridge WebSocket.
+- `@zinc-project/zinc-ui-e2e` (`type:e2e`): UI e2e with Vitest driving the `playwright` library. Run them with `nx run …:e2e-web`, `…:e2e-desktop`, or `nx e2e` for both.
+  - Each suite's global setup seeds a temp `ZINC_DATA_DIR` with two maps, red and blue (`src/support/seededData.ts`, via `MapDb`). Their tiles come from a local upstream that serves solid PNGs, so no OSM is seeded and no internet is needed.
+  - The specs read the colour at the map's centre from the OpenLayers canvas (`mapCenterColor`), then click "Switch map".
+  - `web/`: Chromium (headless shell) against the built zinc-server with `ZINC_WEB_DIR`.
+  - `desktop/`: Playwright's `_electron` against `apps/zinc-electron/dist/app`, with `ELECTRON_RUN_AS_NODE` removed and its own `XDG_CONFIG_HOME`, so a running app's single-instance lock doesn't interfere. It also checks the sandbox and a clean quit.
+  - Needs a display (use `xvfb-run` on CI) and, outside VS Code, the AppArmor profile from `apps/zinc-electron/scripts/setup-apparmor.sh`. Install the browser once with `npx playwright install chromium`.
 - `@zinc-project/browser-shell`: development-only Vite app (`nx serve @zinc-project/browser-shell`, port 4200) that mounts `<zinc-app>` for live reload and browser debugging. It proxies `/api` and `/rx` to the server on port 3000, so run `npm run server` alongside it. VS Code has a "Debug browser-shell in Chrome" launch config for it.
+- `@zinc-project/zinc-web` (`type:shell`): the production UI bundle (Vite, `dist/`). `src/main.ts` calls `connectHostBackend()` (`src/hostBackend.ts`), passes the result to `configureCtx()`, then imports `@zinc-project/ui`. The backend connection depends on the host:
+  - Electron: the preload (`window.zincHost`) hands over a `MessagePort`.
+  - Android: the `ZincBackend` Capacitor plugin (`src/capacitorBackend.ts`) returns a `backendUrl`.
+  - Plain browser: the worker falls back to the WebSocket at `/rx`.
+- `@zinc-project/zinc-electron` (`type:server`, `scope:node`): Electron 44, packaged with electron-builder.
+  - `src/main.ts` sets up the app lifecycle and a sandboxed `BrowserWindow` with `contextIsolation` that loads `zinc://app/index.html`.
+  - `src/backend.ts` is the backend composition root. It mirrors zinc-server, but hosts services on a `PortHostSocketHandler`; each page load gets its own `MessageChannelMain` port through the `zinc:connect-backend` IPC.
+  - `src/appProtocol.ts` serves `zinc://app/`: tile paths through `tileResponse()`, everything else from the bundled zinc-web (`renderer/`) with a CSP header.
+  - `scripts/build.mjs` uses esbuild to stage `dist/app`: `main.cjs`, `preload.cjs`, `db-worker.cjs`, `renderer/`, a runtime `package.json` and `node_modules/better-sqlite3`.
+  - `electron-builder.config.cjs` packages `dist/app` into `dist/release`.
+  - `npm run desktop` runs the staged app. `npm run desktop:dist` builds the Linux x64 AppImage and the Windows x64 NSIS installer. The NSIS step runs wine (with 32-bit support) to generate the uninstaller, so building it on Linux needs wine; the `portable` win target does not.
+  - VS Code terminals set `ELECTRON_RUN_AS_NODE=1`. `scripts/start.mjs` drops it; run Electron by hand with `env -u ELECTRON_RUN_AS_NODE`.
+  - Ubuntu 23.10+ blocks unprivileged user namespaces (`kernel.apparmor_restrict_unprivileged_userns=1`), so outside VS Code's AppArmor profile the dev Electron aborts with "SUID sandbox helper binary … not configured correctly". Run `sh apps/zinc-electron/scripts/setup-apparmor.sh` once (it uses sudo to install an AppArmor profile for `node_modules/electron/dist/electron`). The AppImage's launcher instead falls back to `--no-sandbox` on such systems.
+- `@zinc-project/zinc-android` (`type:shell`, `scope:browser`): Capacitor 8 (`capacitor.config.json`, `webDir: ../zinc-web/dist`, appId `app.zinc.navigation`) plus the committed Gradle project in `android/`. It embeds Node 24 from **digidem/nodejs-mobile** (official nodejs-mobile, Capacitor-NodeJS and Capawesome are stuck on Node 18).
+  - `scripts/fetch-native.mjs` (nx `native`) downloads the pinned, SHA-256-checked `libnode.so` + headers and digidem's better-sqlite3 13 N-API prebuilds (`libbetter_sqlite3.so`) into `android/app/{libnode,src/main/jniLibs}` (gitignored) for arm64-v8a and x86_64.
+  - `android/app/src/main/cpp/node-host.cpp` is the JNI shim that calls `node::Start()` and pipes process stdout/stderr to logcat (tag `zinc-stdio`). The NDK is pinned to r27d (`27.3.13750724`), libnode's own NDK, so `libc++_shared.so` matches. Everything is 16 KB page aligned.
+  - `NodeHost.java` copies `assets/nodejs/` to app storage when the APK changes, then opens a loopback listening socket and passes its fd (`ZINC_LISTEN_FD`), `ZINC_PORT`, a random `ZINC_TOKEN`, `ZINC_DATA_DIR` and `ZINC_SQLITE_BINDING` to Node through env vars. It starts Node once per process on a 16 MB-stack thread. `ZincBackendPlugin.java` (`connect()` → `{ url }`) hands the WebView `ws://127.0.0.1:<port>/rx?t=<token>`.
+  - Native libs are extracted (`useLegacyPackaging`) because the DB worker loads `libbetter_sqlite3.so` by path. `network_security_config.xml` allows cleartext only to `127.0.0.1`.
+  - Targets: `sync` (builds zinc-web and zinc-android-node, runs `native` and `cap sync`), `open`, `run`, `assemble` (debug APK) and `bundle` (release AAB). `open` and `run` go through `scripts/cap.mjs`, which finds the SDK without `ANDROID_HOME` (from `local.properties`, else `~/Android/Sdk`). Without `--target`, `run` deploys to the connected device, or boots `ZINC_AVD` (default: the first AVD).
+  - Toolchain: JDK 21 (`JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64`). The Android SDK lives in `~/Android/Sdk` (`ANDROID_HOME`), with `platform-tools`, `platforms;android-36`, `build-tools;36.0.0`, `ndk;27.3.13750724` and `cmake;3.22.1`. `android/local.properties` (gitignored) holds `sdk.dir`. The emulator AVD `zinc-api36-16k` (`system-images;android-36;google_apis_ps16k;x86_64`) uses 16 KB pages; start it with `emulator -avd zinc-api36-16k`.
+- `@zinc-project/zinc-android-node` (`type:server`, `scope:node`): the backend composition root for Android's embedded Node. It mirrors zinc-server on a plain `node:http` server bound to `127.0.0.1`. The rxjs-bridge `WebSocketHost` sits at `/rx`, and tiles are served through `tileResponse()`. Every request must carry the per-launch token (`?t=`, checked in `src/access.ts`), and tile URLs are absolute and include it. `scripts/build.mjs` bundles `main.cjs` and `db-worker.cjs` with esbuild into `apps/zinc-android/android/app/src/main/assets/nodejs/` (gitignored), with better-sqlite3's JS but no prebuilds. Its env parsing is in `src/env.ts`. It also runs on desktop Node for debugging, e.g. `ZINC_DATA_DIR=… ZINC_PORT=4100 ZINC_TOKEN=x node …/assets/nodejs/main.cjs`.
 - **Maps** (the first feature that runs end to end):
   - `libs/utils`: `formats/znc.ts` parses and writes `.znc`, and `tiles/tileGrid.ts` holds the grid math and URL templates.
   - `libs/contracts`: `db/mapStore.base.ts`, `backend/maps.base.ts` and `worker/mapLayers.base.ts`.
-  - `libs/data`: the DB worker (`src/worker.ts`, started via `createDataWorker`) keeps one better-sqlite3 `<id>.znm` file per map. Each file holds the map config and its tile BLOBs.
+  - `libs/data`: the DB worker (`src/worker.ts`, started via `createDataWorker`) keeps one better-sqlite3 `<id>.znm` file per map. Each file holds the map config and its tile BLOBs. The optional `DataWorkerData.sqliteBinding` gives an addon path that the worker loads with `loadSqliteAddon()` (`process.dlopen`, so any file name works). It's used on Android.
   - `libs/backend`: `MapsService` holds one `MapHandler` per map and serves tiles cache-first. A shared `TileDownloader` caps requests at 64 in flight and retries failures. `hostMapsService()` exposes the service over any transport host.
-  - `libs/ui-state-worker`: a `remote/` WebSocket bridge to `maps`, and `MapLayersService.activeMap$` (currently the first map).
+  - `libs/ui-state-worker`: a `remote/` bridge to `maps` and `MapLayersService.activeMap$` (currently the first map). The worker builds `WorkerContext` on the first message, `UiStateWorkerInit` (`@zinc-project/ui-state-worker/init`, posted by `createUiStateWorker()`). That message carries an optional backend port or `backendUrl` and selects a `MessagePortHandler` or a `WebSocketHandler`.
   - `libs/ui-state`: `MapEngine.setBaseMap()` builds an OL tile source from a `MapInfo`, registering proj4 grids when needed.
 - **Tile coordinates are OpenLayers tile coords everywhere**: `y` grows down from the grid origin, so it is negative for bottom-left origins. Download templates use `{-y}` for TMS rows. Tile bytes go over HTTP, never through a JSON socket bridge.
 - `libs/ui-state`: `MapEngine` (`src/lib/map/`) wraps OpenLayers. It takes and returns WGS84 `[lon, lat]` and exports the OL stylesheet as `mapEngineCss`.
@@ -33,14 +60,14 @@ The architecture is stream-first. Services are rxjs throughout, and every bounda
 - Tags and `depConstraints` are enforced in `eslint.config.mjs`.
 - `experimentalDecorators: true` and `useDefineForClassFields: false` are set in `tsconfig.base.json`. rxjs-bridge stubs and Lit need both.
 
-**Not created yet:** the shell apps (`zinc-web`, `zinc-electron`, `zinc-android`).
+**Installed:** Electron, electron-builder and `playwright` (library, e2e only) are root devDependencies. Capacitor 8 (`@capacitor/core`, `@capacitor/android`, `@capacitor/cli`) is installed in zinc-android, and `@capacitor/core` in zinc-web. OpenLayers (`ol`) and `proj4` are installed in `libs/ui-state`, `ws` in zinc-server, and `better-sqlite3` in `libs/data`.
 
-**Not installed yet:** Electron, Capacitor and nodejs-mobile. OpenLayers (`ol`) and `proj4` are installed in `libs/ui-state`, `ws` in zinc-server, and `better-sqlite3` in `libs/data`.
+`better-sqlite3` (v13) is a native module, but it ships **N-API prebuilds** for linux/darwin/win32 × x64/arm64 (and linuxmusl) in `prebuilds/`. It picks one at runtime and has no install script. So:
+- Electron needs no rebuild, for any version or target. electron-builder runs with `npmRebuild: false` and keeps only the target platform's prebuild.
+- nodejs-mobile (Android): digidem/better-sqlite3-nodejs-mobile publishes N-API prebuilds per version, and zinc-android ships them as `libbetter_sqlite3.so`. A better-sqlite3 upgrade needs a matching digidem release, pinned in `apps/zinc-android/scripts/fetch-native.mjs`.
+- Node SEA: ship the package (or the `.node` file via its `nativeBinding` option) beside the binary.
 
-`better-sqlite3` is a native module. Before shipping each platform it needs:
-- `electron-rebuild` for Electron;
-- an arm64 build for nodejs-mobile;
-- the `.node` file shipped beside the Node SEA binary.
+**rxjs-bridge 0.8** adds the message-port transport: `PortHostSocketHandler` on the host side (its `connect()` takes a `PortConnection` adapter) and `MessagePortHandler` on the client side, both used with `WebSocketHost`/`WebSocketBridge`. `ClientConnection` now carries `address`, and `req` is optional.
 
 **rxjs-bridge gaps found so far:** `WebSocketHandler` has no stop/close method, the socket transport is JSON-only (no binary), and the `@WorkerThreadHost` decorator throws when its module is imported outside a worker thread.
 
@@ -54,8 +81,8 @@ Every platform runs the same contracts. Only the transport between the frontend 
 
 | Platform | Frontend | Node backend tier runs in | Frontend ↔ backend transport |
 |---|---|---|---|
-| Desktop: Electron, Linux + Windows (Windows cross-compiled from Linux) | renderer | Electron **main process** | **new** rxjs-bridge Electron IPC / MessagePort transport |
-| Android: Capacitor | WebView | **embedded Node** (nodejs-mobile / capacitor-nodejs) | **new** rxjs-bridge nodejs-mobile channel transport |
+| Desktop: Electron, Linux + Windows (Windows cross-compiled from Linux) | renderer | Electron **main process** | rxjs-bridge MessagePort transport (`PortHostSocketHandler` / `MessagePortHandler`) |
+| Android: Capacitor | WebView | **embedded Node 24** (digidem/nodejs-mobile, JNI host in zinc-android) | WebSocket on `127.0.0.1` with a per-launch token (`@WebSocketHost` / `@WebSocketBridge`); tiles over loopback HTTP |
 | Headless: Node SEA, Linux only | any browser | `zinc-server` (Fastify + `ws`) | WebSocket (`@WebSocketHost` / `@WebSocketBridge`) |
 
 Four execution contexts, each linked to the next by rxjs-bridge:
@@ -186,8 +213,13 @@ npx nx graph                                           # dependency graph
 npx nx run-many -t lint test build typecheck           # same as CI
 npm run server                                         # = nx serve zinc-server: Fastify dev server, rebuilds + restarts on change (PORT, HOST env)
 npm run shell                                          # = nx serve browser-shell: UI dev server with HMR on http://localhost:4200
+npm run desktop                                        # = nx run zinc-electron:start: build zinc-web + main bundles, run Electron
+npm run desktop:dist                                   # = nx run zinc-electron:package: AppImage + NSIS into apps/zinc-electron/dist/release
+npm run android                                        # = nx run zinc-android:run: sync, then build + install on a device/emulator (cap run)
+npm run android:apk                                    # = nx run zinc-android:assemble: debug APK in apps/zinc-android/android/app/build/outputs/apk
 npx nx test @zinc-project/ui                           # Vitest for one lib
 npx nx e2e @zinc-project/zinc-server-e2e               # Vitest e2e (builds server, spawns it on a free port)
+npx nx e2e @zinc-project/zinc-ui-e2e                   # UI e2e: e2e-web (Chromium + zinc-server) and e2e-desktop (Electron)
 cd libs/<lib> && npx vitest run src/path/to/x.spec.ts  # single spec
 ```
 
